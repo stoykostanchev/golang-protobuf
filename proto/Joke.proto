@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+message Joke {
+  int32 id = 1;
+  string type = 2;
+  string setup = 3;
+  string punchline = 4;
+}
+
+message JokesReply {
+  repeated Joke jokes = 1;
+}
+
+message JokesRequest {}
+
+service Joker {
+    rpc GetJokes(JokesRequest) returns (JokesReply);
+}
