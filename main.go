@@ -2,24 +2,24 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
+	"net"
+
+	pb "github.com/backend/generated/proto"
+
+	"google.golang.org/grpc"
 )
 
+type jokerServer struct {
+	pb.UnimplementedJokerServer
+}
+
 func main() {
-	res, err := http.Get("http://www.google.com/robots.txt")
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8080))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("failed to listen: %v", err)
 	}
-	robots, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Printf("%s", robots)
-	http.Handle("/", http.FileServer(http.Dir("/backend")))
-	log.Fatal(http.ListenAndServe(":8080", nil))
-	fmt.Printf("Listened")
-	// see docker-machine ip to figure out what ip to hit
+	grpcServer := grpc.NewServer()
+	pb.RegisterJokerServer(grpcServer, &jokerServer{})
+	grpcServer.Serve(lis)
 }
