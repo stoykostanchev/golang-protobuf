@@ -15,16 +15,16 @@ import (
 	"google.golang.org/grpc"
 )
 
-const CACHE_PATH = "images.cache"
-
 func main() {
-	fmt.Println("Ze")
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8080))
 
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
+	jokerServer := js.JokerServer{}
+	pb.RegisterJokerServer(grpcServer, &jokerServer)
+
 	grpcWebServer := grpcweb.WrapServer(grpcServer)
 
 	httpServer := &http.Server{
@@ -40,7 +40,5 @@ func main() {
 			}
 		}), &http2.Server{}),
 	}
-	jokerServer := js.JokerServer{}
-	pb.RegisterJokerServer(grpcServer, &jokerServer)
 	httpServer.Serve(lis)
 }

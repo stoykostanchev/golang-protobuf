@@ -11,6 +11,9 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
+const cachePath = "images.cache"
+const capacity = 1000
+
 /*JokesReplyProvider stores jokes in memory*/
 type JokesReplyProvider struct {
 	reply      pb.JokesReply
@@ -21,7 +24,7 @@ type JokesReplyProvider struct {
 var singleton *JokesReplyProvider
 var once sync.Once
 
-func getManager(cachePath string, capacity int32) *JokesReplyProvider {
+func getManager() *JokesReplyProvider {
 	once.Do(func() {
 		singleton = &JokesReplyProvider{
 			reply:      pb.JokesReply{Jokes: []*pb.Joke{}},
