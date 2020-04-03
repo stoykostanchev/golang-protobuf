@@ -1,6 +1,6 @@
 FROM golang:alpine as build-env
 
-RUN apk update && apk add bash ca-certificates gcc g++ libc-dev
+RUN apk update && apk add bash vim
 
 WORKDIR /backend
 
