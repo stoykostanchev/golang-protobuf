@@ -14,58 +14,8 @@ import (
 const cachePath = "images.cache"
 const capacity = 1000
 
-/*JokesReplyProvider stores jokes in memory*/
-type JokesReplyProvider struct {
-	reply      pb.JokesReply
-	newJokesCh chan *pb.Joke
-	cachePath  string
-}
-
-var singleton *JokesReplyProvider
-var once sync.Once
-
-func getManager() *JokesReplyProvider {
-	once.Do(func() {
-		singleton = &JokesReplyProvider{
-			reply:      pb.JokesReply{Jokes: []*pb.Joke{}},
-			newJokesCh: make(chan *pb.Joke, 1000),
-			cachePath:  cachePath}
-	})
-	return singleton
-}
-
-func (rp *JokesReplyProvider) startRegularJokeUpdates() {
-	go func(c chan *pb.Joke) {
-		for range time.Tick(time.Second * 1) {
-			joke := rp.getJoke()
-			jr := pb.JokesReply{}
-			e := rp.getJokesReplyCache(&jr)
-
-			if e != nil || rp.jokeNeedsCaching(joke) {
-				rp.cacheJoke(joke, &jr)
-			}
-
-			c <- joke
-		}
-	}(rp.newJokesCh)
-}
-
-func (rp *JokesReplyProvider) getJoke() *pb.Joke {
-	joke := pb.Joke{Id: 1, Type: "programming", Setup: "Knock Knock?", Punchline: "Yo mamma"}
-	return &joke
-}
-
-func (rp *JokesReplyProvider) jokeNeedsCaching(joke *pb.Joke) bool {
-	for _, j := range rp.reply.Jokes {
-		if j.GetId() == joke.GetId() {
-			return false
-		}
-	}
-	return true
-}
-
-func (rp *JokesReplyProvider) getJokesReplyCache(message proto.Message) error {
-	data, err := ioutil.ReadFile(rp.cachePath)
+func loadPersistantReply(message proto.Message, cachePath string) error {
+	data, err := ioutil.ReadFile(cachePath)
 	if err != nil {
 		return fmt.Errorf("cannot read binary data from file: %w", err)
 	}
@@ -77,7 +27,87 @@ func (rp *JokesReplyProvider) getJokesReplyCache(message proto.Message) error {
 	return nil
 }
 
-func (rp *JokesReplyProvider) cacheJoke(joke *pb.Joke, reply *pb.JokesReply) error {
+/*JokesReplyProvider stores jokes in memory*/
+type JokesReplyProvider struct {
+	reply            pb.JokesReply
+	newJokesCh       chan *pb.Joke
+	cachePath        string
+	dummyJokeCounter int32
+}
+
+var singleton *JokesReplyProvider
+var once sync.Once
+
+/*GetJokesReplyProvider returns a singleton that caches jokes in-memory and can fetch new jokes from the web*/
+func GetJokesReplyProvider() *JokesReplyProvider {
+	once.Do(func() {
+		reply := pb.JokesReply{Jokes: []*pb.Joke{}}
+		e := loadPersistantReply(&reply, cachePath)
+		if e != nil {
+			fmt.Println("Err loading")
+		}
+		singleton = &JokesReplyProvider{
+			reply:            reply,
+			newJokesCh:       make(chan *pb.Joke, capacity),
+			cachePath:        cachePath,
+			dummyJokeCounter: 0}
+	})
+	return singleton
+}
+
+/*ProvideJokesReply updates the memory cache and returns it*/
+func (rp *JokesReplyProvider) ProvideJokesReply() *pb.JokesReply {
+forLoop:
+	for {
+		select {
+		case joke := <-rp.newJokesCh:
+			fmt.Println("Adding all jokes to the memory")
+			rp.reply.Jokes = append(rp.reply.GetJokes(), joke)
+		default:
+			break forLoop
+		}
+	}
+	return &rp.reply
+}
+
+/*StartRegularJokeUpdates spawns a new thread and stars re-fetching every SECS seconds*/
+func (rp *JokesReplyProvider) StartRegularJokeUpdates(secs time.Duration) {
+	fmt.Println("Timer starting")
+	go func(c chan *pb.Joke) {
+		for range time.Tick(time.Second * secs) {
+			joke := rp.getJoke()
+			fmt.Println("Tick. Got a new joke.", joke.GetId())
+			jr := pb.JokesReply{}
+			e := loadPersistantReply(&jr, rp.cachePath)
+
+			if e != nil || !rp.isJokePersistant(joke, &jr) {
+				rp.persistJoke(joke, &jr)
+				fmt.Println("Persisted")
+			} else {
+				fmt.Println("Failed to persist or joke did not need persisting")
+			}
+			c <- joke
+		}
+	}(rp.newJokesCh)
+}
+
+func (rp *JokesReplyProvider) getJoke() *pb.Joke {
+	rp.dummyJokeCounter++
+	joke := pb.Joke{Id: rp.dummyJokeCounter, Type: "programming", Setup: "Knock Knock?", Punchline: "Yo mamma"}
+
+	return &joke
+}
+
+func (rp *JokesReplyProvider) isJokePersistant(joke *pb.Joke, reply *pb.JokesReply) bool {
+	for _, j := range reply.Jokes {
+		if j.GetId() == joke.GetId() {
+			return true
+		}
+	}
+	return false
+}
+
+func (rp *JokesReplyProvider) persistJoke(joke *pb.Joke, reply *pb.JokesReply) error {
 	reply.Jokes = append(reply.Jokes, joke)
 	out, err := proto.Marshal(reply)
 
@@ -92,13 +122,3 @@ func (rp *JokesReplyProvider) cacheJoke(joke *pb.Joke, reply *pb.JokesReply) err
 	return nil
 
 }
-
-// forLoop:
-// 	for {
-// 		select {
-// 		case joke := <-ch: // does this fetch only1?
-// 			memJokes = append(memJokes, joke)
-// 		default:
-// 			break forLoop
-// 		}
-// 	}

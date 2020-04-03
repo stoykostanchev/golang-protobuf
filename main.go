@@ -21,6 +21,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
+	jokesProvider := js.GetJokesReplyProvider()
+	jokesProvider.StartRegularJokeUpdates(3)
 	grpcServer := grpc.NewServer()
 	jokerServer := js.JokerServer{}
 	pb.RegisterJokerServer(grpcServer, &jokerServer)
