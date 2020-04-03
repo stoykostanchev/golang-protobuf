@@ -9,5 +9,6 @@ require (
 	github.com/improbable-eng/grpc-web v0.12.0 // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	golang.org/x/net v0.0.0-20190311183353-d8887717615a
+	golang.org/x/text v0.3.0
 	google.golang.org/grpc v1.28.0
 )
