@@ -47,7 +47,7 @@ func (api *JokesAPI) GetJoke() (*pb.Joke, error) {
 
 	if err2 != nil {
 		fmt.Println(err2)
-		return nil, err
+		return nil, err2
 	}
 	return joke, nil
 }
