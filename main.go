@@ -47,9 +47,6 @@ func main() {
 			}
 		}), &http2.Server{}),
 	}
-	log.Printf("Http server starting...")
-	done := make(chan bool)
-	go httpServer.Serve(lis)
-	log.Printf("Server listening on port: %s", port)
-	<-done
+	log.Printf("Http server starting on port %s...", port)
+	httpServer.Serve(lis)
 }
