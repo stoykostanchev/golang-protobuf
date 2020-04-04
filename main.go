@@ -20,6 +20,7 @@ func main() {
 
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
+		return
 	}
 	jokesProvider := js.GetJokesReplyProvider()
 	jokesProvider.StartRegularJokeUpdates(3)

@@ -140,13 +140,12 @@ forLoop:
 
 /*StartRegularJokeUpdates spawns a new thread and stars re-fetching every SECS seconds*/
 func (rp *JokesReplyProvider) StartRegularJokeUpdates(secs time.Duration) {
-	fmt.Println("Timer starting")
 	go func(c chan *pb.Joke) {
 		for range time.Tick(time.Second * secs) {
 			joke, err := rp.jokesAPI.GetJoke()
 			if err != nil {
-				fmt.Println("Non nil error for getting a joke", err)
-				return
+				fmt.Println("Err when trying to get a joke:", err)
+				continue
 			}
 			fmt.Println("Got a new joke.", joke)
 			jr := pb.JokesReply{}
