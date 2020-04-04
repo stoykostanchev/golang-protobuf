@@ -2,6 +2,7 @@ package services
 
 import (
 	"io/ioutil"
+	"log"
 	"net/http"
 
 	pb "github.com/backend/generated/proto"
@@ -45,23 +46,27 @@ func (api *JokesAPI) GetJoke() (*pb.Joke, error) {
 
 /*GetRandomJokes fetches a list of random jokes*/
 func (api *JokesAPI) GetRandomJokes() *pb.JokesReply {
+	log.Printf("Fetching new jokes")
 	resp, err := http.Get(api.baseURL + "/programming/ten")
 	reply := &pb.JokesReply{Jokes: []*pb.Joke{}}
 
 	if err != nil {
+		log.Printf("Warning - fetching failed: %s", err)
 		return reply
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		log.Printf("Warning - failed to read response body: %s", err)
 		return reply
 	}
 	// Response body is an invalid json - an array of jokes
 	stringifiedBody := "{ \"jokes\": " + string(body) + "}"
 
-	err2 := jsonpb.UnmarshalString(stringifiedBody, reply)
+	err = jsonpb.UnmarshalString(stringifiedBody, reply)
 
-	if err2 != nil {
+	if err != nil {
+		log.Printf("Warning - unable to parse the response into a message: %s", err)
 		return reply
 	}
 	return reply

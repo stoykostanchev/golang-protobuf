@@ -1,13 +1,13 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"net"
 	"net/http"
-
-	js "github.com/backend/services"
+	"os"
 
 	pb "github.com/backend/generated/proto"
+	js "github.com/backend/services"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -15,9 +15,13 @@ import (
 )
 
 func main() {
-	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8080))
+	log.SetOutput(os.Stdout)
+
+	port := "8080"
+	lis, err := net.Listen("tcp", ":"+port)
 
 	if err != nil {
+		log.Fatal(err)
 		return
 	}
 	jokesProvider := js.GetJokesReplyProvider()
@@ -38,8 +42,14 @@ func main() {
 
 			if grpcWebServer.IsGrpcWebRequest(r) {
 				grpcWebServer.ServeHTTP(w, r)
+			} else {
+				log.Printf("Request not recognised as a grpc-web request")
 			}
 		}), &http2.Server{}),
 	}
-	httpServer.Serve(lis)
+	log.Printf("Http server starting...")
+	done := make(chan bool)
+	go httpServer.Serve(lis)
+	log.Printf("Server listening on port: %s", port)
+	<-done
 }
