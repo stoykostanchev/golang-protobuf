@@ -31,8 +31,10 @@ func GetJokesReplyProvider() *JokesReplyProvider {
 		log.Printf("Instantiating a jokes provider")
 		api := GetJokesAPI()
 		reply := &pb.JokesReply{Jokes: []*pb.Joke{}}
+		persistInitialSet := false
 		e := loadPersistantReply(reply, cachePath)
 		if e != nil {
+			persistInitialSet = true
 			log.Printf("Warning : %s", e)
 			reply = api.GetRandomJokes()
 		}
@@ -43,6 +45,10 @@ func GetJokesReplyProvider() *JokesReplyProvider {
 			cachePath:        cachePath,
 			dummyJokeCounter: 0,
 			jokesAPI:         api}
+
+		if persistInitialSet {
+			singleton.persistJokesResponse(reply)
+		}
 	})
 	return singleton
 }
@@ -76,17 +82,7 @@ func (rp *JokesReplyProvider) StartRegularJokeUpdates(secs time.Duration) {
 				log.Printf("Warning - error while fething the joke: %s", err)
 				continue
 			}
-			jr := pb.JokesReply{}
-			e := loadPersistantReply(&jr, rp.cachePath)
-
-			if e != nil || !rp.isJokePersistant(joke, &jr) {
-				if e != nil {
-					log.Printf("Warning - no cache found% %s", e)
-				} else {
-					log.Printf("Joke already saved in the past")
-				}
-				rp.persistJoke(joke, &jr)
-			}
+			rp.addJokeToPersisted(joke)
 			c <- joke
 		}
 	}(rp.newJokesCh)
@@ -101,10 +97,9 @@ func (rp *JokesReplyProvider) isJokePersistant(joke *pb.Joke, reply *pb.JokesRep
 	return false
 }
 
-func (rp *JokesReplyProvider) persistJoke(joke *pb.Joke, reply *pb.JokesReply) error {
-	log.Printf("Storing joke to memory: %v", joke)
-	reply.Jokes = append(reply.Jokes, joke)
-	out, err := proto.Marshal(reply)
+func (rp *JokesReplyProvider) persistJokesResponse(resp *pb.JokesReply) error {
+	log.Printf("Number of jokes that are getting persisted into memory now: %d", len(resp.Jokes))
+	out, err := proto.Marshal(resp)
 
 	if err != nil {
 		log.Printf("Error marshalling:", err)
@@ -115,7 +110,23 @@ func (rp *JokesReplyProvider) persistJoke(joke *pb.Joke, reply *pb.JokesReply) e
 		return err
 	}
 	return nil
+}
 
+func (rp *JokesReplyProvider) addJokeToPersisted(joke *pb.Joke) error {
+	log.Printf("Storing joke to memory: %v", joke)
+	jr := pb.JokesReply{}
+	e := loadPersistantReply(&jr, rp.cachePath)
+
+	if e != nil || !rp.isJokePersistant(joke, &jr) {
+		if e != nil {
+			log.Printf("Warning - no cache found% %s", e)
+		} else {
+			log.Printf("Joke already saved in the past")
+			return nil
+		}
+	}
+	jr.Jokes = append(jr.Jokes, joke)
+	return rp.persistJokesResponse(&jr)
 }
 
 func loadPersistantReply(message proto.Message, cachePath string) error {
