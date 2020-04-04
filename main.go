@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net"
 	"net/http"
 
@@ -19,11 +18,10 @@ func main() {
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", 8080))
 
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
 		return
 	}
 	jokesProvider := js.GetJokesReplyProvider()
-	jokesProvider.StartRegularJokeUpdates(3)
+	jokesProvider.StartRegularJokeUpdates(180)
 	grpcServer := grpc.NewServer()
 	jokerServer := js.JokerServer{}
 	pb.RegisterJokerServer(grpcServer, &jokerServer)
