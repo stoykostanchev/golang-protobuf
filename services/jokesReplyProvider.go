@@ -102,11 +102,11 @@ func (rp *JokesReplyProvider) persistJokesResponse(resp *pb.JokesReply) error {
 	out, err := proto.Marshal(resp)
 
 	if err != nil {
-		log.Printf("Error marshalling:", err)
+		log.Printf("Error marshalling: %s", err)
 		return err
 	}
 	if err := ioutil.WriteFile(rp.cachePath, out, 0644); err != nil {
-		log.Printf("Error writing file:", err)
+		log.Printf("Error writing file: %s", err)
 		return err
 	}
 	return nil
@@ -119,7 +119,7 @@ func (rp *JokesReplyProvider) addJokeToPersisted(joke *pb.Joke) error {
 
 	if e != nil || !rp.isJokePersistant(joke, &jr) {
 		if e != nil {
-			log.Printf("Warning - no cache found% %s", e)
+			log.Printf("Warning - no cache found %s", e)
 		} else {
 			log.Printf("Joke already saved in the past")
 			return nil

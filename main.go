@@ -25,7 +25,7 @@ func main() {
 		return
 	}
 	jokesProvider := js.GetJokesReplyProvider()
-	jokesProvider.StartRegularJokeUpdates(180)
+	jokesProvider.StartRegularJokeUpdates(5)
 	grpcServer := grpc.NewServer()
 	jokerServer := js.JokerServer{}
 	pb.RegisterJokerServer(grpcServer, &jokerServer)
