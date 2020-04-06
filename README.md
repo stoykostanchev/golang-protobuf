@@ -2,11 +2,11 @@
 
 Run the project (assuming you have cloned and at the root of the project), you could do:
 
-`docker build -t api ./`
+`docker build -t api .`
 
 followed by
 
-`docker run --dns 8.8.8.8 -it --publish 4000:8080 api`
+`docker run --dns 8.8.8.8 -it --publish 8080:8080 api` (optionally mount the temp directory to persist the cache on the host. This might be different on your OS, adding `-v $(pwd)/temp:/backend/temp`) should do for Linux and Mac
 
 Note: to (re)generate the golang and the JS code, as it is you would need golang protoc and protoc-gen-grpc-web. At that point you could run
 
@@ -28,7 +28,7 @@ This generates the js and the golang code inside the proto folder, for you to mo
 
 Used is a channel for jokes, that gets filled by a goroutine, and consumed on-demand when a request comes
 
-The jokes are stored on the file system (this folder, in a filed called `jokes.cache`)by the main thread for the initial fetch, and by the goroutine that fetches regularly thereafter
+The jokes are stored on the file system (this folder, in `temp/jokes.cache`)by the main thread for the initial fetch, and by the goroutine that fetches regularly thereafter
 
 The server also keeps an in-memory representation of the available jokes, so that requsts are just a bit faster
 

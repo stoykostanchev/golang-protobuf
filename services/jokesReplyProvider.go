@@ -10,7 +10,7 @@ import (
 	"github.com/golang/protobuf/proto"
 )
 
-const cachePath = "images.cache"
+const cachePath = "temp/images.cache"
 const capacity = 1000
 
 /*JokesReplyProvider stores jokes in memory*/
